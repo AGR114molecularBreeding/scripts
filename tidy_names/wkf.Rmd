@@ -1,0 +1,118 @@
+---
+title: "tidy_names"
+author: "Jose V. Die"
+date: "10/25/2024"
+output: 
+  html_document:
+    keep_md: yes  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load libraries
+```{r, message=FALSE, warning=FALSE}
+library(Biostrings)
+library(stringr)
+library(dplyr)
+library(tibble)
+```
+
+Load FASTA file as DNAStringSet object
+```{r, message=FALSE, warning=FALSE}
+p = readDNAStringSet("protein.fasta")
+tmp = names(p)
+```
+
+Look at the FASTA file 
+```{r, echo=FALSE}
+p
+```
+
+
+
+Clean protein names. If isoforms, keep just the longest sequence. 
+```{r}
+tmp = names(p)
+tmp = str_split(str_squish(tmp), "Gene=")
+```
+
+```{r}
+tmp = sapply(1:length(tmp), function(i) str_split_1(tmp[[i]][2], " ")[1])
+names(p) = tmp
+p
+```
+
+
+```{r}
+# Build a dataframe with n. isoforms and longest protein size per gene
+df = tibble::tibble(gene= names(p), aa= width(p))
+
+df %>% 
+  arrange(gene, desc(aa)) %>% 
+  count(gene, sort = T) %>% 
+  filter(n > 1)
+
+nisof <- df %>% 
+  arrange(gene, desc(aa)) %>% 
+  count(gene) %>% 
+  pull(n)
+
+df <- df %>%  
+  arrange(gene, desc(aa)) %>% 
+  distinct(gene, .keep_all = TRUE) %>% 
+  mutate(n_isof = nisof)
+
+df %>% arrange(desc(n_isof))
+```
+
+```{r}
+# Split sequences by their names
+grouped_seqs <- split(p, names(p))
+```
+
+```{r}
+# For each group, find the longest sequence
+longest_seqs <- lapply(grouped_seqs, function(group) {
+  group[which.max(width(group))]
+})
+```
+
+```{r}
+# Unlist the result to get back a DNAStringSet
+longest_dna_set <- do.call(c, longest_seqs)
+```
+
+```{r}
+# Assign correct names back to the sequences
+names(longest_dna_set) <- names(longest_seqs)
+longest_dna_set %>% head(3)
+```
+
+
+```{r}
+# Convert the list back into a DNAStringSet
+LargeDNAStringSet <- DNAStringSet(sapply(longest_dna_set, `[[`, 1))
+```
+
+
+```{r}
+LargeDNAStringSet %>% head(3)
+```
+
+```{r}
+# Save a FASTA file 
+writeXStringSet(x = LargeDNAStringSet, filepath = "protein_cnames.fa")
+```
+
+
+```{r}
+cnames = readDNAStringSet("protein_cnames.fa")
+cnames["GWHGBRAD003538"]
+```
+
+```{r}
+cnames["GWHGBRAD028626"]
+```
+
