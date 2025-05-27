@@ -130,6 +130,9 @@ ggraph(tg, layout = "fr") +
   theme_minimal() + xlab("") + ylab("") +
   labs(title = "Familias de secuencias (componentes conexos)")
 
+# layout = "fr" usa el algoritmo Fruchterman-Reingold, que distribuye los nodos de forma estética y clara. Las posiciones de los nodos (X/Y) se calculan automáticamente mediante a
+# lgoritmos de layout como Fruchterman-Reingold o Kamada-Kawai, que solo intentan distribuir los nodos de forma legible. Por tanto, los valores de los ejes son arbitrarios y no representan 
+# variables medibles y no tienen significado geométrico real.   
 
 
 
